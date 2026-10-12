@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>World of Chihuahua — прототип 4</title>
+<title>World of Chihuahua — прототип 5</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:#1b1730;overscroll-behavior:none}
@@ -94,6 +94,16 @@ nav button.on{background:#3d3668;color:#fff;font-weight:700}
 .days div.got{background:#3d3668;color:#fff}
 .days div.now{border-color:#ffd23f;color:#ffd23f;font-weight:700}
 .seg button{font-size:12px!important;padding:0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,.9)}50%{box-shadow:0 0 0 6px rgba(255,210,63,0)}}
+.hl{animation:pulse 1.1s infinite;outline:3px solid #ffd23f!important;outline-offset:-3px}
+.dog.hl{outline-offset:0}
+#tut{position:absolute;left:8px;right:8px;bottom:128px;background:#1b1730;border:3px solid #ffd23f;padding:10px 12px;z-index:25000;display:none;font-size:13px;line-height:1.45}
+#tut.on{display:block}
+#tut b.h{display:block;color:#ffd23f;font-size:11px;margin-bottom:4px}
+#tut .tb{display:flex;gap:8px;margin-top:8px}
+#tut .tb button{min-height:38px;flex:1}
+.odds{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.odds span{font-size:12px;font-weight:700;color:#2b2545;padding:2px 6px}
 #toast{position:absolute;left:50%;top:120px;transform:translateX(-50%);background:#1b1730;border:2px solid #ffd23f;padding:8px 12px;font-size:13px;font-weight:700;display:none;z-index:40000;max-width:92%;text-align:center}
 </style>
 </head>
@@ -124,6 +134,7 @@ nav button.on{background:#3d3668;color:#fff;font-weight:700}
 <section class="panel" id="p-friends"></section>
 <section class="panel" id="p-profile"></section>
 <div id="shade"><div id="sheet"></div></div>
+<div id="tut"></div>
 <div id="toast"></div>
 </div>
 <script>
@@ -143,8 +154,8 @@ color:[
 {id:'brown',n:'Рыжий',p:0,b:'#c9793f',l:'#f6dcc0',o:'#5a2e14',d:'#8a4a22'},
 {id:'cream',n:'Кремовый',p:0,b:'#e9c58a',l:'#fff4dc',o:'#6b4a1e',d:'#b98f4f'},
 {id:'white',n:'Белый',p:1,b:'#f4ecd8',l:'#ffffff',o:'#6b6250',d:'#c9b9a0'},
-{id:'black',n:'Чёрный',p:1,b:'#3a3440',l:'#8a8494',o:'#17141c',d:'#6a6474'},
-{id:'blue',n:'Голубой',p:2,b:'#7f8fc0',l:'#d3daf2',o:'#2c3558',d:'#55649a'},
+{id:'black',n:'Чёрный с подпалом',p:1,b:'#2b2630',l:'#d08a4c',o:'#0f0d12',d:'#4a4252'},
+{id:'blue',n:'Голубой',p:2,b:'#6c86d4',l:'#c9d6ff',o:'#24346e',d:'#4a63b0'},
 {id:'pink',n:'Розовый',p:3,b:'#f29ab8',l:'#ffe1ec',o:'#7a2c4a',d:'#d0668c'},
 {id:'cosmic',n:'Космический',p:8,secret:1,b:'#5b3fd6',l:'#b9a8ff',o:'#1a1040',d:'#3a2596'},
 {id:'gold',n:'Золотой',p:6,secret:1,ev:1,b:'#f2c230',l:'#fff1a8',o:'#7a5a00',d:'#c99400'},
@@ -165,8 +176,14 @@ var TRAITS=[
 {id:'playful',n:'Игривый',p:1,h:'бегает быстро и приносит монеты вдвое чаще'},
 {id:'curious',n:'Любопытный',p:1,h:'каждая седьмая находка — клад в 5 раз больше'},
 {id:'generous',n:'Щедрый',p:2,h:'приносит на 50% больше монет'},
-{id:'weird',n:'Чудак',p:2,h:'у его щенков мутации случаются вдвое чаще'}];
-function rndTrait(){var W=[40,25,10],t=0,i;for(i=0;i<TRAITS.length;i++)t+=W[TRAITS[i].p];var r=rnd()*t;for(i=0;i<TRAITS.length;i++){r-=W[TRAITS[i].p];if(r<=0)return TRAITS[i].id}return 'sleepy'}
+{id:'weird',n:'Чудак',p:2,h:'у его щенков мутации случаются вдвое чаще'},
+{id:'genius',n:'Гений',p:3,combo:1,h:'у его щенков мутации втрое чаще и никогда не ухудшают признак'},
+{id:'treasure',n:'Кладоискатель',p:3,combo:1,h:'каждая третья находка — клад в 5 раз больше'},
+{id:'lunatic',n:'Лунатик',p:3,combo:1,h:'приносит монеты даже во сне, а без вас — втрое больше'},
+{id:'banker',n:'Банкир',p:4,combo:1,h:'приносит вдвое больше монет'}];
+var COMBO=[{a:'weird',b:'weird',r:'genius',p:.3},{a:'curious',b:'curious',r:'treasure',p:.3},{a:'playful',b:'sleepy',r:'lunatic',p:.25},{a:'generous',b:'greedy',r:'banker',p:.2}];
+function combo(x,y){for(var i=0;i<COMBO.length;i++){var c=COMBO[i];if((c.a===x&&c.b===y)||(c.a===y&&c.b===x))return c}return null}
+function rndTrait(){var W=[40,25,10],L=TRAITS.filter(function(x){return !x.combo}),t=0,i;for(i=0;i<L.length;i++)t+=W[L[i].p];var r=rnd()*t;for(i=0;i<L.length;i++){r-=W[L[i].p];if(r<=0)return L[i].id}return 'sleepy'}
 function ptier(p){return p>=5?4:p}
 function traitHtml(t){return 'Характер: <b>'+t.n+'</b> <span style="color:'+TC[t.p]+'">'+TIER[t.p].toLowerCase()+'</span> · '+t.h}
 var UP=[
@@ -215,6 +232,7 @@ function gkey(g){return g.color+'-'+g.pattern+'-'+g.ears+'-'+g.acc+(g.shiny?'-s'
 function worth(g){return (pts(g)+1)*10*(g.shiny?3:1)}
 function tname(g){return (g.shiny?'Сияющий · ':'')+TIER[tier(g)]}
 function traitOf(id){for(var i=0;i<TRAITS.length;i++)if(TRAITS[i].id===id)return TRAITS[i];return TRAITS[5]}
+function tp(id){return traitOf(id).p}
 
 /* ---------- pixel sprites, 24x24 ---------- */
 var BASE=[
@@ -294,7 +312,7 @@ DEC.forEach(function(x){x.img=art(x.a,x.pal)});
 var TILES=[tile('#6fbf4a','#57a03a','#ffe66b'),tile('#ecd9a0','#d9c283','#ffffff'),tile('#3f8f3a','#2c6b2a','#ff7aa2'),tile('#e8f1fb','#c9dbf0','#ffffff')];
 
 /* ---------- state ---------- */
-var S={coins:100,stars:0,dogs:[],lake:[],album:{},reg:{},nid:1,zones:[true,false,false,false],cur:0,show:[],pname:'Игрок',bred:0,decor:[],sets:{},daily:null,streak:{n:0,last:0},league:{week:0,tier:0,pts:0},t:0,up:{}};
+var S={coins:100,stars:0,dogs:[],lake:[],album:{},reg:{},nid:1,zones:[true,false,false,false],cur:0,show:[],pname:'Игрок',bred:0,decor:[],sets:{},daily:null,streak:{n:0,last:0},league:{week:0,tier:0,pts:0},t:0,up:{},charge:0,tut:0,stat:{up:0,combos:{},orders:0,earned:0},ach:{},orders:[]};
 function lvl(id){return (S.up&&S.up[id])||0}
 function maxDogs(){return BASEDOGS+(lvl('slots')?4:0)}
 function penCap(){return BASEPEN+(lvl('pen')?3:0)}
@@ -313,7 +331,7 @@ function migrate(o){
     if(!o.reg[d.id])o.reg[d.id]={id:d.id,name:d.name,g:d.g,trait:d.trait,gen:d.gen||1,pa:0,pb:0}});
   o.lake=(o.lake||[]).map(function(x){if(x&&typeof x==='object'){var id=o.nid++;o.reg[id]={id:id,name:x.name,g:x.g,trait:x.trait==='calm'?'weird':x.trait,gen:x.gen||1,pa:0,pb:0};return id}return x});
   for(var k in o.album)o.album[k].n=o.album[k].n||1;
-  o.stars=o.stars||0;o.decor=o.decor||[];o.sets=o.sets||{};o.streak=o.streak||{n:0,last:0};o.league=o.league||{week:0,tier:0,pts:0};o.daily=o.daily||null;o.t=o.t||0;o.up=o.up||{};
+  o.stars=o.stars||0;o.decor=o.decor||[];o.sets=o.sets||{};o.streak=o.streak||{n:0,last:0};o.league=o.league||{week:0,tier:0,pts:0};o.daily=o.daily||null;o.t=o.t||0;o.up=o.up||{};o.charge=o.charge||0;if(o.tut==null)o.tut=99;o.stat=o.stat||{up:0,combos:{},orders:0,earned:0};o.stat.combos=o.stat.combos||{};o.ach=o.ach||{};o.orders=o.orders||[];
   return o;
 }
 function load(){
@@ -338,9 +356,9 @@ function mk(d){
   yard.appendChild(el);els[d.id]=el;
 }
 function cozy(){var s=0;S.decor.forEach(function(o){var x=dec(o.type);if(x)s+=x.z});return s}
-function rate(d){if(d.pen||d.away)return 0;var v=2+pts(d.g)*2;if(d.trait==='greedy')v*=.5;if(d.trait==='generous')v*=1.5;if(d.zone===1)v*=1.25;if(d.zone===3)v*=1.5;if(d.trait==='curious')v*=1.6;return v/(d.trait==='playful'?4.5:9)}
+function rate(d){if(d.pen||d.away)return 0;var v=2+pts(d.g)*2;if(d.trait==='greedy')v*=.5;if(d.trait==='generous')v*=1.5;if(d.trait==='banker')v*=2;if(d.zone===1)v*=1.25;if(d.zone===3)v*=1.5;if(d.trait==='curious')v*=1.6;if(d.trait==='treasure')v*=2.3;if(d.trait==='lunatic')v*=3;return v/(d.trait==='playful'?4.5:9)}
 function addLeague(n){S.league.pts+=n}
-function track(type,n){if(!S.daily)return;S.daily.q.forEach(function(x){if(x.t===type&&!x.done)x.have=Math.min(x.need,x.have+n)});navBadge()}
+function track(type,n){if(type==='coins')S.stat.earned+=n;if(!S.daily)return;S.daily.q.forEach(function(x){if(x.t===type&&!x.done)x.have=Math.min(x.need,x.have+n)});navBadge()}
 function claimable(){if(!S.daily)return 0;var c=0;S.daily.q.forEach(function(x){if(!x.done&&x.have>=x.need)c++});if(!S.daily.bonus&&S.daily.q.every(function(x){return x.done}))c++;return c}
 function navBadge(){var b=document.querySelector('nav button[data-tab=quests]');if(b){var c=claimable();b.textContent='Задания'+(c?' ('+c+')':'')}}
 function newDay(){
@@ -421,12 +439,12 @@ function frame(now){
           if(d.trait==='sleepy'&&rnd()<.6){d.wait=5+rnd()*6;d.sleep=1}else if(rnd()<.1){d.wait=4+rnd()*4;d.sleep=1}else d.wait=1+rnd()*3}
         else{d.x+=dx/L*sp;d.y+=dy/L*sp;d.face=dx<0?-1:1}
       }
-      if(!asleep)d.ct-=dt;
+      if(!asleep||d.trait==='lunatic')d.ct-=dt;
       if(d.ct<=0&&!d.coin){
         var v=2+pts(d.g)*2;
-        if(d.trait==='greedy')v*=.5;if(d.trait==='generous')v*=1.5;if(d.zone===1)v*=1.25;if(d.zone===3)v*=1.5;
+        if(d.trait==='greedy')v*=.5;if(d.trait==='generous')v*=1.5;if(d.trait==='banker')v*=2;if(d.zone===1)v*=1.25;if(d.zone===3)v*=1.5;
         if(d.rested){v*=3;d.rested=0}
-        if(d.trait==='curious'&&rnd()<.15)v*=5;
+        if(d.trait==='curious'&&rnd()<.15)v*=5;if(d.trait==='treasure'&&rnd()<.33)v*=5;
         d.coin=Math.max(1,Math.round(v));d.ct=(6+rnd()*6)*(d.trait==='playful'?.5:1);
         if(lvl('auto')){S.coins+=d.coin;track('coins',d.coin);if(d.zone===S.cur)floatTxt(d.x+16,d.y-10,'+'+d.coin);d.coin=0;$('coins').textContent=S.coins}
       }
@@ -439,7 +457,7 @@ function frame(now){
     el.querySelector('.zz').style.display=d.sleep&&d.wait>0?'block':'none';
   });
   guestTick(now,dt,b,wb,moving);
-  acc+=dt;if(acc>.5){acc=0;var p=pending();$('collect').textContent=p?'Собрать +'+p:'Собрать'}
+  acc+=dt;if(acc>.5){acc=0;achCheck();var p=pending();$('collect').textContent=p?'Собрать +'+p:'Собрать'}
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -514,12 +532,12 @@ function endDrag(){
 yard.addEventListener('pointerup',endDrag);
 yard.addEventListener('pointercancel',endDrag);
 function tap(d){
-  if(d.coin){S.coins+=d.coin;track('coins',d.coin);floatTxt(d.x+16,d.y-10,'+'+d.coin);d.coin=0;hud();return}
+  if(d.coin){S.coins+=d.coin;track('coins',d.coin);tutEv('coin');floatTxt(d.x+16,d.y-10,'+'+d.coin);d.coin=0;hud();return}
   card(d.id);
 }
 $('collect').onclick=function(){
   var s=0;S.dogs.forEach(function(d){if(d.coin){s+=d.coin;if(d.zone===S.cur)floatTxt(d.x+16,d.y-10,'+'+d.coin);d.coin=0}});
-  if(!s){toast('Монет пока нет');return}S.coins+=s;track('coins',s);hud();toast('+'+s+' монет');
+  if(!s){toast('Монет пока нет');return}S.coins+=s;track('coins',s);tutEv('coin');hud();toast('+'+s+' монет');
 };
 
 /* ---------- sheets ---------- */
@@ -583,28 +601,89 @@ function askBreed(a,b,g){
   $('no').onclick=function(){if(g){a.x=g.hx;a.y=g.hy}close()};
   $('yes').onclick=function(){breed(a,b)};
 }
-function mutChance(a,b){var m=.12+.03*lvl('luck');if(a.trait==='weird'||b.trait==='weird')m*=2;if(a.zone===2)m*=1.5;return m}
-function breed(a,b){
-  var g={},from={},m=mutChance(a,b);
-  ['color','pattern','ears','acc'].forEach(function(k){
-    var src=rnd()<.5?a:b;g[k]=src.g[k];from[k]={t:'от '+src.name};
-    if(rnd()<m){var nv=pick(k,'mut'),tries=0;while((nv===a.g[k]||nv===b.g[k])&&tries++<20)nv=pick(k,'mut');g[k]=nv;from[k]={t:'мутация!',hot:1}}
+function mutChance(a,b){var m=.12+.03*lvl('luck');if(a.trait==='weird'||b.trait==='weird')m*=2;if(a.trait==='genius'||b.trait==='genius')m*=3;if(a.zone===2)m*=1.5;return Math.min(.75,m)}
+var GK=['color','pattern','ears','acc'];
+function vals(k,cmp){return P[k].filter(function(x){return !x.secret&&cmp(x.p)})}
+function pref(k,a,b){var A=part(k,a.g[k]),B=part(k,b.g[k]);if(A.id===B.id)return a;var hi=A.p>=B.p?a:b,lo=hi===a?b:a;return rnd()<.6?hi:lo}
+function upTier(a,b){var x=tier(a.g),y=tier(b.g),mx=Math.max(x,y);if(mx>=4)return 0;var c=x===y?.2:.25;if(a.trait==='weird'||b.trait==='weird')c+=.08;if(a.trait==='genius'||b.trait==='genius')c+=.15;c+=.02*lvl('luck');return c}
+function raise(g,from,target){
+  var guard=0;
+  while(tier(g)<target&&guard++<12){
+    var opts=GK.filter(function(k){var cur=part(k,g[k]);return !cur.secret&&vals(k,function(p){return p>cur.p}).length});
+    if(!opts.length)break;
+    var k=opts[Math.floor(rnd()*opts.length)],cur=part(k,g[k]),up=vals(k,function(p){return p>cur.p}),lo=Math.min.apply(null,up.map(function(x){return x.p}));
+    up=up.filter(function(x){return x.p===lo});g[k]=up[Math.floor(rnd()*up.length)].id;from[k]={t:'улучшение породы!',hot:1};
+  }
+}
+function genChild(a,b,charge){
+  var g={},from={},m=mutChance(a,b),gen=a.trait==='genius'||b.trait==='genius',mut=0;
+  GK.forEach(function(k){var src=pref(k,a,b);g[k]=src.g[k];from[k]={t:'от '+src.name}});
+  var top0=Math.max(tier(a.g),tier(b.g)),cg=0;
+  while(tier(g)>top0&&cg++<6){var dk=GK.filter(function(k){return a.g[k]!==b.g[k]&&part(k,g[k]).p>Math.min(part(k,a.g[k]).p,part(k,b.g[k]).p)});if(!dk.length)break;
+    var k=dk[Math.floor(rnd()*dk.length)],lo=part(k,a.g[k]).p<=part(k,b.g[k]).p?a:b;g[k]=lo.g[k];from[k]={t:'от '+lo.name}}
+  GK.forEach(function(k){
+    if(rnd()<m){
+      var best=Math.max(part(k,a.g[k]).p,part(k,b.g[k]).p),r=rnd(),pool;
+      if(r<.7||gen)pool=vals(k,function(p){return p>best});
+      if(!pool||!pool.length){pool=vals(k,function(p){return p===best});pool=pool.filter(function(x){return x.id!==a.g[k]&&x.id!==b.g[k]})}
+      if((!pool.length||r>=.95)&&!gen)pool=vals(k,function(p){return p<best});
+      if(pool&&pool.length){var lo=Math.min.apply(null,pool.map(function(x){return x.p})),near=pool.filter(function(x){return x.p===lo});var pk=(rnd()<.75?near:pool);g[k]=pk[Math.floor(rnd()*pk.length)].id;from[k]={t:'мутация!',hot:1};mut++}
+    }
   });
+  if(gen&&!mut){var k=GK[Math.floor(rnd()*4)];raise(g,from,tier(g)+1);}
+  var floor=Math.min(tier(a.g),tier(b.g)),guard=0;
+  while(tier(g)<floor&&guard++<8){
+    var ks=GK.filter(function(k){return Math.max(part(k,a.g[k]).p,part(k,b.g[k]).p)>part(k,g[k]).p});
+    if(!ks.length){raise(g,from,floor);break}
+    var k=ks[Math.floor(rnd()*ks.length)],src=part(k,a.g[k]).p>=part(k,b.g[k]).p?a:b;g[k]=src.g[k];from[k]={t:'от '+src.name};
+  }
+  var top=Math.max(tier(a.g),tier(b.g)),pity=charge>=9&&top<4;
+  var same=tier(a.g)===tier(b.g);if(top<4&&(pity||rnd()<upTier(a,b))){raise(g,from,(same||pity)?top+1:top);if(pity)from.pity=1}
   if(rnd()<.03){g.color=ev().c;from.color={t:'подарок события!',hot:1}}
   if(rollShiny(a,b)){g.shiny=true;from.shiny=1}
   var cs=[a.g.color,b.g.color].sort().join('+');
   if(cs==='black+white'&&rnd()<.3){g.color='cosmic';from.color={t:'секретный рецепт!',hot:1}}
-  var tr=rnd()<.1?rndTrait():(rnd()<.5?a.trait:b.trait);
-  var kid=newDog(g,tr,Math.max(a.gen,b.gen)+1,a.id,b.id);
+  var c=combo(a.trait,b.trait),tr;
+  if(c&&rnd()<c.p){tr=c.r;from.trait='особая пара!'}
+  else if(a.trait===b.trait){tr=a.trait;from.trait='от обоих родителей'}
+  else if(rnd()<.1){tr=rndTrait();from.trait='мутация!'}
+  else{var hi=tp(a.trait)>=tp(b.trait)?a:b,lo=hi===a?b:a,src=rnd()<.6?hi:lo;tr=src.trait;from.trait='от '+src.name}
+  return {g:g,from:from,trait:tr};
+}
+function odds(a,b){
+  var t=[0,0,0,0,0],nw=0,N=500,cmb=0;
+  for(var i=0;i<N;i++){var r=genChild(a,b,S.charge);t[tier(r.g)]++;if(!S.album[gkey(r.g)])nw++;if(traitOf(r.trait).combo&&r.trait!==a.trait&&r.trait!==b.trait)cmb++}
+  return {t:t.map(function(x){return x/N}),nw:nw/N,cmb:cmb/N};
+}
+function askBreed(a,b,g){
+  var o=odds(a,b),c=combo(a.trait,b.trait),top=Math.max(tier(a.g),tier(b.g));
+  open('<h3>Скрестить?</h3><div class="pair"><img class="px" alt="" src="'+sprite(a.g)+'"><span>+</span><img class="px" alt="" src="'+sprite(b.g)+'"><span>= ?</span></div>'+
+  '<div class="sub">Каким будет щенок:</div><div class="odds">'+o.t.map(function(x,i){return x>=.005?'<span style="background:'+TC[i]+'">'+TIER[i]+' '+Math.round(x*100)+'%</span>':''}).join('')+'</div>'+
+  '<div class="sub" style="line-height:1.5;font-size:13px">Новый вид для альбома: <b style="color:#fff">'+Math.round(o.nw*100)+'%</b> · мутация признака: <b style="color:#fff">'+Math.round(mutChance(a,b)*100)+'%</b>'+
+  (c?'<br><b style="color:#ffd23f">Особая пара характеров!</b> Шанс '+Math.round(c.p*100)+'% на редкий характер.':a.trait===b.trait?'<br>Одинаковый характер у обоих: щенок получит его точно.':'')+
+  (top<4?'<br>Заряд удачи: <b style="color:#fff">'+S.charge+' из 10</b>'+(S.charge>=9?' · <b style="color:#ffd23f">это скрещивание точно даст редкость выше!</b>':'')+'<div class="bar2"><i style="width:'+S.charge*10+'%;background:#ffd23f"></i></div>':'')+
+  '<span style="display:block;margin-top:6px">Родители уедут в домик у озера.'+(a.zone!==b.zone?' Щенок появится в зоне «'+ZN[a.zone]+'».':'')+'</span></div>'+
+  '<div class="btns"><button class="ghost" id="no">Нет</button><button class="main" id="yes">Скрестить</button></div>');
+  $('no').onclick=function(){if(g){a.x=g.hx;a.y=g.hy}close()};
+  $('yes').onclick=function(){breed(a,b)};
+}
+function breed(a,b){
+  var top=Math.max(tier(a.g),tier(b.g)),R=genChild(a,b,S.charge),g=R.g,from=R.from;
+  var kid=newDog(g,R.trait,Math.max(a.gen,b.gen)+1,a.id,b.id);
+  var upd=tier(g)>top;
+  if(top<4){if(upd){S.charge=0;S.stat.up++}else S.charge=Math.min(10,S.charge+1)}
+  if(traitOf(R.trait).combo&&from.trait==='особая пара!')S.stat.combos[R.trait]=1;
   kid.zone=a.zone;var near=(b.zone===a.zone&&!b.pen)?b:a;kid.x=near.x;kid.y=near.pen?TOP+60:near.y;
   [a,b].forEach(function(p){S.lake.unshift(p.id);els[p.id].remove();delete els[p.id]});
   S.dogs=S.dogs.filter(function(d){return d!==a&&d!==b});
   S.dogs.push(kid);mk(kid);S.bred++;
-  var gain=discover(g,kid.id);S.stars++;addLeague(5+gain);track('breed',1);if(gain)track('new',1);hud();save();
+  var gain=discover(g,kid.id);S.stars++;addLeague(5+gain);track('breed',1);if(gain)track('new',1);hud();save();tutEv('breed');
   var t=traitOf(kid.trait);
   open('<div style="text-align:center"><div class="sub">Родился щенок · поколение '+kid.gen+'</div><img class="px" alt="" style="width:144px;height:144px" src="'+sprite(g)+'"><h3>'+kid.name+'</h3>'+badge(g)+
+  (upd?'<div style="color:#ffd23f;font-weight:700;margin-top:8px">Редкость выше обоих родителей!'+(from.pity?' (сработал заряд удачи)':'')+'</div>':'')+
   (gain?'<div style="color:#ffd23f;font-weight:700;margin-top:8px">Новая в альбоме: +'+gain+' очков</div>':'<div class="sub" style="margin-top:8px">Такая уже есть в альбоме</div>')+'</div>'+
-  '<div class="parts">'+partsHtml(g,from)+'<br>'+traitHtml(t)+'</div>'+
+  '<div class="parts">'+partsHtml(g,from)+'<br>'+traitHtml(t)+(from.trait?' <span style="color:'+(from.trait==='особая пара!'||from.trait==='мутация!'?'#ffd23f':'#9f98c8')+'">· '+from.trait+'</span>':'')+'</div>'+
+  (top<4?'<div class="sub">Заряд удачи: '+S.charge+' из 10. На десятом скрещивании без повышения редкости щенок гарантированно будет выше родителей.</div>':'')+
   '<div class="btns"><button class="main" id="ok">Отлично</button></div>');
   $('ok').onclick=close;
 }
@@ -615,7 +694,7 @@ $('buy').onclick=function(){
   S.coins-=PRICE[z];
   var g={color:pick('color','',z),pattern:pick('pattern','',z),ears:pick('ears','',z),acc:pick('acc','',z)};
   if(rollShiny()){g.shiny=true}
-  var d=newDog(g);S.dogs.push(d);mk(d);var gain=discover(g,d.id);addLeague(gain);track('buy',1);if(gain)track('new',1);hud();save();
+  var d=newDog(g);S.dogs.push(d);mk(d);var gain=discover(g,d.id);addLeague(gain);track('buy',1);if(gain)track('new',1);hud();save();tutEv('buy');
   toast(d.name+': '+tname(g).toLowerCase()+(gain?' · +'+gain+' очков':''));
 };
 
@@ -681,8 +760,9 @@ function showAlbum(){
 var questMode='daily';
 function showQuests(){
   newDay();var e=ev(),ec=part('color',e.c),eg={color:e.c,pattern:'none',ears:'big',acc:'none'};
-  var seg='<div class="seg"><button data-m="daily" class="'+(questMode==='daily'?'on':'')+'">На сегодня</button><button data-m="event" class="'+(questMode==='event'?'on':'')+'">Событие</button></div>',h;
-  if(questMode==='daily'){
+  var seg='<div class="seg"><button data-m="daily" class="'+(questMode==='daily'?'on':'')+'">На сегодня</button><button data-m="orders" class="'+(questMode==='orders'?'on':'')+'">Заказы</button><button data-m="event" class="'+(questMode==='event'?'on':'')+'">Событие</button></div>',h;
+  if(questMode==='orders'){h=ordersHtml(seg)}
+  else if(questMode==='daily'){
     var all=S.daily.q.every(function(x){return x.done});
     h='<h2>Задания на сегодня</h2><p>За каждое: монеты и одна звезда. Звёзды тратятся в событии.</p>'+seg+
     S.daily.q.map(function(x,i){return '<div class="row" style="cursor:default"><span style="flex:1"><b>'+x.n+'</b><br><span class="sub">'+x.have+' из '+x.need+' · награда: '+x.r+' монет</span><div class="bar2"><i style="width:'+Math.round(x.have/x.need*100)+'%"></i></div></span>'+
@@ -702,6 +782,7 @@ function showQuests(){
     else{var x=S.daily.q[+b.dataset.q];x.done=true;S.coins+=x.r;S.stars++;toast('+'+x.r+' монет и звезда')}
     hud();navBadge();save();showQuests();
   }});
+  bindOrders(el);
   if($('evbuy'))$('evbuy').onclick=function(){
     if(S.stars<EVCOST){toast('Не хватает звёзд: нужно '+EVCOST);return}
     if(inZone(S.cur).length>=maxDogs()){toast('В текущей зоне нет места');return}
@@ -709,6 +790,87 @@ function showQuests(){
     var d=newDog(g);S.dogs.push(d);mk(d);var gain=discover(g,d.id);addLeague(gain);if(gain)track('new',1);hud();save();showQuests();toast(d.name+': '+tname(g).toLowerCase()+(gain?' · +'+gain+' очков':''));
   };
 }
+
+/* ---------- orders ---------- */
+var CUST=['Бабушка Валя','Сосед Олег','Блогер Кира','Ветеринар Нина','Фотограф Лёва','Мэр городка','Девочка Соня','Повар Гоги'];
+function newOrder(){
+  var lvlN=Math.min(3,Math.floor(S.stat.orders/3)),want={},ks=GK.slice().sort(function(){return rnd()-.5}).slice(0,lvlN>=2?3:2);
+  ks.forEach(function(k){var maxp=[1,2,3,5][lvlN];var pool=vals(k,function(p){return p>0&&p<=maxp});if(!pool.length)pool=vals(k,function(p){return p<=maxp});want[k]=pool[Math.floor(rnd()*pool.length)].id});
+  var sum=0;for(var k in want)sum+=part(k,want[k]).p;
+  return {who:CUST[Math.floor(rnd()*CUST.length)],want:want,coins:60+sum*45,stars:1+Math.floor(sum/3)};
+}
+function fillOrders(){while(S.orders.length<3)S.orders.push(newOrder())}
+function fits(d,o){for(var k in o.want)if(d.g[k]!==o.want[k])return false;return true}
+function ordersHtml(seg){
+  fillOrders();
+  return '<h2>Заказы</h2><p>Жители просят показать собаку с нужными признаками. Собака остаётся у вас. Подходят только собаки в мире, не у озера. Выполнено заказов: '+S.stat.orders+'.</p>'+seg+
+  S.orders.map(function(o,i){var ok=S.dogs.filter(function(d){return !d.away&&fits(d,o)})[0];
+    return '<div class="row" style="cursor:default;align-items:flex-start"><span style="flex:1"><b>'+o.who+'</b><br><span class="sub">Ищет собаку: '+Object.keys(o.want).map(function(k){var v=part(k,o.want[k]);return KN[k].toLowerCase()+' <b style="color:'+TC[ptier(v.p)]+'">'+v.n.toLowerCase()+'</b>'}).join(', ')+'<br>Награда: '+o.coins+' монет и '+o.stars+' зв.</span>'+
+    (ok?'<br><span style="color:#7be06a;font-size:12px">Подходит: '+ok.name+'</span>':'')+'</span><span style="display:flex;flex-direction:column;gap:6px">'+(ok?'<button class="main" data-o="'+i+'">Показать</button>':'')+'<button class="ghost" data-or="'+i+'" style="min-width:92px;min-height:36px;font-size:11px">Другой · 1 зв.</button></span></div>'}).join('');
+}
+function bindOrders(el){
+  [].forEach.call(el.querySelectorAll('[data-o]'),function(b){b.onclick=function(){
+    var o=S.orders[+b.dataset.o];S.coins+=o.coins;S.stars+=o.stars;S.stat.orders++;S.orders.splice(+b.dataset.o,1);fillOrders();hud();save();showQuests();toast(o.who+' в восторге: +'+o.coins+' монет и '+o.stars+' зв.');
+  }});
+  [].forEach.call(el.querySelectorAll('[data-or]'),function(b){b.onclick=function(){
+    if(S.stars<1){toast('Нужна 1 звезда');return}S.stars--;S.orders[+b.dataset.or]=newOrder();hud();save();showQuests();
+  }});
+}
+/* ---------- achievements ---------- */
+function nShiny(){return looks().filter(function(g){return g.shiny}).length}
+var ACH=[
+{id:'b1',n:'Первый щенок',h:'вывести щенка',f:function(){return [S.bred,1]},r:2},
+{id:'b10',n:'Заводчик',h:'вывести 10 щенков',f:function(){return [S.bred,10]},r:3},
+{id:'b50',n:'Питомник',h:'вывести 50 щенков',f:function(){return [S.bred,50]},r:6},
+{id:'a10',n:'Коллекционер',h:'открыть 10 видов',f:function(){return [Object.keys(S.album).length,10]},r:3},
+{id:'a40',n:'Энциклопедия',h:'открыть 40 видов',f:function(){return [Object.keys(S.album).length,40]},r:6},
+{id:'up1',n:'Лучше родителей',h:'вывести щенка редкостью выше обоих родителей',f:function(){return [S.stat.up,1]},r:2},
+{id:'up10',n:'Селекционер',h:'10 раз превзойти родителей',f:function(){return [S.stat.up,10]},r:5},
+{id:'leg',n:'Легенда',h:'получить легендарную собаку',f:function(){return [looks().filter(function(g){return tier(g)===4}).length,1]},r:5},
+{id:'sh',n:'Сияние',h:'получить сияющую собаку',f:function(){return [nShiny(),1]},r:3},
+{id:'c1',n:'Особый характер',h:'получить характер от особой пары',f:function(){return [Object.keys(S.stat.combos).length,1]},r:3},
+{id:'c4',n:'Знаток характеров',h:'все четыре особых характера',f:function(){return [Object.keys(S.stat.combos).length,4]},r:10},
+{id:'g10',n:'Династия',h:'десятое поколение',f:function(){return [maxGen(),10]},r:5},
+{id:'z4',n:'Путешественник',h:'открыть все зоны',f:function(){return [S.zones.filter(Boolean).length,4]},r:5},
+{id:'cz',n:'Уютный дом',h:'уют 30',f:function(){return [cozy(),30]},r:3},
+{id:'st',n:'Неделя с собаками',h:'7 дней подряд',f:function(){return [S.streak.n,7]},r:5},
+{id:'lg',n:'Золотая лига',h:'попасть в золотую лигу',f:function(){return [S.league.tier,2]},r:5},
+{id:'o10',n:'Любимец города',h:'выполнить 10 заказов',f:function(){return [S.stat.orders,10]},r:4},
+{id:'m10k',n:'Богач',h:'заработать 10 000 монет',f:function(){return [S.stat.earned,10000]},r:3}];
+function achReady(){return ACH.filter(function(x){var v=x.f();return !S.ach[x.id]&&v[0]>=v[1]})}
+var achSeen={};
+function achCheck(){
+  var r=achReady();r.forEach(function(x){if(!achSeen[x.id]){achSeen[x.id]=1;toast('Достижение: «'+x.n+'». Заберите награду в профиле')}});
+  var b=document.querySelector('nav button[data-tab=profile]');if(b)b.textContent='Профиль'+(r.length?' ('+r.length+')':'');
+}
+function achHtml(){
+  var got=ACH.filter(function(x){return S.ach[x.id]}).length;
+  return '<h2 style="margin-top:16px">Достижения: '+got+' из '+ACH.length+'</h2>'+ACH.map(function(x){var v=x.f(),have=Math.min(v[0],v[1]),done=S.ach[x.id];
+    return '<div class="row" style="cursor:default'+(done?';opacity:.65':'')+'"><span style="flex:1"><b>'+x.n+'</b><br><span class="sub">'+x.h+' · '+have+' из '+v[1]+' · '+x.r+' зв.</span><div class="bar2"><i style="width:'+Math.round(have/v[1]*100)+'%"></i></div></span>'+
+    (done?'<span class="r" style="color:#7be06a">есть</span>':have>=v[1]?'<button class="main" data-a="'+x.id+'">Забрать</button>':'')+'</div>'}).join('');
+}
+/* ---------- tutorial ---------- */
+var TUT=[
+{ev:'coin',t:'Это ваш двор. Собаки гуляют и находят монеты. Нажмите на монету над собакой.',hl:function(){var d=S.dogs.filter(function(d){return d.zone===S.cur&&!d.pen})[0];if(d&&!d.coin)d.coin=5;return d?els[d.id]:null}},
+{ev:'breed',t:'Теперь главное. Зажмите одну собаку и перетащите её на другую: так выводится щенок.',hl:function(){return null},cand:1},
+{ev:'tab:album',t:'Щенок взял признаки родителей, а родители уехали отдыхать в домик у озера. Каждый новый вид попадает в альбом и даёт очки. Откройте «Альбом».',hl:function(){return document.querySelector('nav button[data-tab=album]')}},
+{ev:'tab:yard',t:'Здесь вся ваша коллекция. Цель игры: открыть как можно больше видов и вывести самых редких собак. Вернитесь в «Мир».',hl:function(){return document.querySelector('nav button[data-tab=yard]')}},
+{ev:'buy',t:'Новых собак можно купить за монеты: у каждой случайные признаки. Купите щенка.',hl:function(){return $('buy')},prep:function(){if(S.coins<PRICE[S.cur])S.coins=PRICE[S.cur];hud()}},
+{ev:'done',t:'Готово! Скрещивайте, ищите редких и сияющих собак, выполняйте заказы во вкладке «Задания». Чем реже родители, тем реже щенок.',hl:function(){return document.querySelector('nav button[data-tab=quests]')}}];
+var tutEl=null;
+function tutRender(){
+  [].forEach.call(document.querySelectorAll('.hl'),function(e){e.classList.remove('hl')});
+  var box=$('tut');
+  if(S.tut>=TUT.length){box.classList.remove('on');return}
+  var st=TUT[S.tut];if(st.prep)st.prep();
+  box.innerHTML='<b class="h">ОБУЧЕНИЕ · ШАГ '+(S.tut+1)+' ИЗ '+TUT.length+'</b>'+st.t+'<div class="tb">'+(st.ev==='done'?'<button class="main" id="tdone">Понятно</button>':'<button class="ghost" id="tskip">Пропустить обучение</button>')+'</div>';
+  box.classList.add('on');
+  if($('tskip'))$('tskip').onclick=function(){S.tut=99;save();tutRender()};
+  if($('tdone'))$('tdone').onclick=function(){S.tut=99;save();tutRender()};
+  tutEl=st.hl();if(tutEl)tutEl.classList.add('hl');
+  if(st.cand)S.dogs.forEach(function(d){if(d.zone===S.cur&&els[d.id])els[d.id].classList.add('hl')});
+}
+function tutEv(e){if(S.tut<TUT.length&&TUT[S.tut].ev===e){S.tut++;save();setTimeout(tutRender,e==='breed'?50:0)}}
 var shopMode='decor';
 function showShop(){
   var el=$('p-shop'),seg='<div class="seg"><button data-m="decor" class="'+(shopMode==='decor'?'on':'')+'">Украшения</button><button data-m="up" class="'+(shopMode==='up'?'on':'')+'">Улучшения</button></div>',h;
@@ -773,8 +935,10 @@ function showProfile(){
   el.innerHTML='<h2>'+S.pname+'</h2><p>Так ваш профиль увидят другие игроки. '+LG[S.league.tier]+' лига.</p><div class="shelf">'+slots+'</div>'+
   '<p>Витрина: до трёх собак. Откройте карточку любой собаки, в мире или у озера, и нажмите «На витрину».</p>'+
   '<div class="stats"><div><b>'+score()+'</b>очков коллекции</div><div><b>'+Object.keys(S.album).length+'</b>видов открыто</div><div><b>'+S.bred+'</b>щенков выведено</div><div><b>'+maxGen()+'</b>старшее поколение</div><div><b>'+cozy()+'</b>уют</div><div><b>'+S.streak.n+' из 7</b>серия входов</div></div>'+
-  '<div class="btns"><button class="ghost" id="ren">Сменить имя</button><button class="ghost" id="reset">Начать заново</button></div>';
+  achHtml()+'<div class="btns"><button class="ghost" id="ren">Сменить имя</button><button class="ghost" id="tut0">Обучение заново</button><button class="ghost" id="reset">Начать заново</button></div>';
   [].forEach.call(el.querySelectorAll('.shelf button'),function(b){b.onclick=function(){if(+b.dataset.id)card(+b.dataset.id);else toast('Выберите собаку и нажмите «На витрину»')}});
+  [].forEach.call(el.querySelectorAll('[data-a]'),function(b){b.onclick=function(){var x=ACH.filter(function(q){return q.id===b.dataset.a})[0];S.ach[x.id]=1;S.stars+=x.r;hud();save();achCheck();showProfile();toast('+'+x.r+' звёзд')}});
+  $('tut0').onclick=function(){S.tut=0;save();tab('yard');tutRender()};
   $('ren').onclick=function(){var n=prompt('Имя игрока',S.pname);if(n&&n.trim()){S.pname=n.trim().slice(0,16);save();showProfile()}};
   $('reset').onclick=function(){if(confirm('Сбросить весь прогресс?')){S=null;try{localStorage.removeItem(KEY);localStorage.removeItem(KEY1)}catch(e){}location.reload()}};
 }
@@ -785,6 +949,7 @@ function tab(t){
   ['album','quests','shop','friends','profile'].forEach(function(p){$('p-'+p).style.top=hh+'px';$('p-'+p).classList.toggle('on',p===t)});
   if(t==='album')showAlbum();if(t==='quests')showQuests();if(t==='shop')showShop();if(t==='friends')showFriends();if(t==='profile')showProfile();
   if(t==='yard')scene();
+  tutEv('tab:'+t);
 }
 [].forEach.call(document.querySelectorAll('nav button'),function(b){b.onclick=function(){tab(b.dataset.tab)}});
 
@@ -817,11 +982,12 @@ function tab(t){
           var cur=S.cur;S.cur=z;var d=newDog(g);S.cur=cur;S.dogs.push(d);mk(d);addLeague(discover(g,d.id));toast(d.name+': '+tname(g).toLowerCase()+', зона «'+ZN[z]+'»')}}
         hud();save();close()}});
   }
-  hud();navBadge();save();
+  fillOrders();hud();navBadge();save();
   if(queue.length)queue.shift()();
+  setTimeout(tutRender,300);
 })();
 window.addEventListener('pagehide',function(){if(S)save()});
-window.__woc={S:function(){return S},sprite:sprite,P:P,hud:hud,save:save,guest:function(){guestNext=0}};
+window.__woc={gen:genChild,tier:tier,S:function(){return S},sprite:sprite,P:P,hud:hud,save:save,guest:function(){guestNext=0}};
 })();
 </script>
 </body>
